@@ -2,6 +2,7 @@
 #include <WiFi.h>
 #include <WebServer.h>
 #include <HardwareSerial.h>
+#include <ESPmDNS.h> //Serviço DNS para propagar hostnme
 
 // --- Credenciais da rede Wi-Fi ---
 const char* ssid = "ssid-da-rede-wifi";
@@ -18,25 +19,49 @@ WebServer server(80);
 
 // --- Função para a página WEB ---
 void handleRoot() {
-  String html;
 
+  // --- Mapeamento da distancia em litros
+  const float distanciaMax = 100.0;   // cm → caixa vazia
+  const float capacidadeTotal = 1000; // litros
+
+  // garante que a distância esteja dentro do intervalo válido
+  if (lastDistance > distanciaMax) lastDistance = distanciaMax;
+  if (lastDistance < 0) lastDistance = 0;
+
+  // cálculo do nível em litros
+  float nivel_litros = (distanciaMax - lastDistance) * capacidadeTotal / distanciaMax;
+
+ // Monta o conteúdo HTML da página
+  String html;
   if (lastDistance == 0) {
     html = "<h1>Sem eco (timeout). Aguardando dados...</h1>";
   } else {
     html = "<h1>Distancia atual: " + String(lastDistance, 2) + " cm</h1>";
   }
 
-  // Monta o conteúdo HTML da página
+  html = R"rawliteral(
+    <html>
+      <head>
+        <meta charset="UTF-8">
+        <title>Nível da Caixa d'Água</title>
+        <style>
+          body { font-family: Arial; text-align: center; margin-top: 40px; }
+          h1 { color: #0077cc; }
+          .valor { font-size: 2em; color: #009933; }
+        </style>
+      </head>
+      <body>
+        <h1>Nível da Caixa d'Água</h1>
+  )rawliteral";
+
+  html += "<p>Distância medida: <b>" + String(lastDistance, 1) + " cm</b></p>";
+  html += "<p class='valor'>Nível atual: <b>" + String(nivel_litros, 0) + " litros</b></p>";
+
   html += R"rawliteral(
     <hr>
     <p>Servidor Web ESP32 funcionando!</p>
     <button onclick="location.reload()">Atualizar</button>
-    <!--
-    <script>
-      setTimeout(() => { location.reload(); }, 2000);
-    </script>
-    -->
-  )rawliteral";
+   )rawliteral";
 
   server.send(200, "text/html", html);
 }
@@ -57,6 +82,7 @@ void setup() {
   // --- Conectando ao Wi-Fi
   Serial.print("Conectando à rede: ");
   Serial.println(ssid);
+  WiFi.setHostname("sensor-nivel");
   WiFi.begin(ssid, password);
 
   // Tempo máximo de espera (10 segundos)
@@ -73,6 +99,8 @@ void setup() {
     Serial.println("✅ Wi-Fi conectado com sucesso!");
     Serial.print("Endereço IP: ");
     Serial.println(WiFi.localIP());
+    Serial.print("Hostname: ");
+    Serial.println(WiFi.getHostname());
     digitalWrite(LED_BUILTIN, HIGH); // sinaliza sucesso
 
     // Configuração do servidor Web
@@ -85,6 +113,13 @@ void setup() {
     Serial.println("❌ Falha ao conectar ao Wi-Fi!");
     Serial.println("Verifique o SSID e a senha, ou reinicie o roteador.");
     digitalWrite(LED_BUILTIN, LOW);  // mantém LED apagado
+  }
+
+  //--- Verifica se há servico de mDNS rodando
+  if (!MDNS.begin("sensor-nivel")) {
+  Serial.println("Erro ao iniciar mDNS");
+  } else {
+  Serial.println("mDNS iniciado: http://sensor-nivel.local");
   }
 }
 
@@ -107,7 +142,8 @@ void loop() {
       WiFi.reconnect(); // tenta reconectar automaticamente
     }
 
-  // Mede a distância no Serial Monitor
+  // --- INICIO --- 
+  // Mede a distância no Serial Monitor)
   digitalWrite(trigPin, LOW);
   delayMicroseconds(2);
   digitalWrite(trigPin, HIGH);
@@ -117,7 +153,7 @@ void loop() {
   long duration = pulseIn(echoPin, HIGH, 30000); // timeout 30ms
   if (duration != 0) {
     lastDistance = duration * 0.0343 / 2;
-  
+    
     Serial.print("Distance: ");
     Serial.print(lastDistance);
     Serial.println(" cm");
