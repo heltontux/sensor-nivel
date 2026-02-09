@@ -1,0 +1,46 @@
+{
+  "version": 1,
+  "author": "Anonymous maker",
+  "editor": "wokwi",
+  "parts": [
+    { "type": "board-esp32-devkit-c-v4", "id": "esp", "top": 57.6, "left": 14.44, "attrs": {} },
+    { "type": "wokwi-hc-sr04", "id": "ultrasonic1", "top": -65.7, "left": -148.1, "attrs": {} },
+    {
+      "type": "wokwi-led",
+      "id": "led_low",
+      "top": 15.6,
+      "left": 234.2,
+      "attrs": { "color": "red" }
+    },
+    {
+      "type": "wokwi-led",
+      "id": "led_med",
+      "top": 25.2,
+      "left": 176.6,
+      "attrs": { "color": "yellow" }
+    },
+    {
+      "type": "wokwi-led",
+      "id": "led_high",
+      "top": 92.4,
+      "left": 167,
+      "attrs": { "color": "green" }
+    }
+  ],
+  "connections": [
+    [ "esp:TX", "$serialMonitor:RX", "", [] ],
+    [ "esp:RX", "$serialMonitor:TX", "", [] ],
+    [ "esp:5V", "ultrasonic1:VCC", "red", [] ],
+    [ "esp:GND.1", "ultrasonic1:GND", "pink", [] ],
+    [ "esp:5", "ultrasonic1:TRIG", "yellow", [] ],
+    [ "esp:18", "ultrasonic1:ECHO", "orange", [] ],
+    [ "esp:GND.2", "led_low:C", "blue", [] ],
+    [ "esp:16", "led_low:A", "green", [] ],
+    [ "esp:17", "led_med:A", "green", [] ],
+    [ "esp:19", "led_high:A", "green", [] ],
+    [ "led_high:C", "esp:GND.4", "blue", [] ],
+    [ "esp:GND.2", "led_med:C", "blue", [] ],
+    [ "esp:GND.3", "led_high:C", "blue", [] ]
+  ],
+  "dependencies": {}
+}
