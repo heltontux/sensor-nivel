@@ -5,8 +5,8 @@
 #include <ESPmDNS.h> //Serviço DNS para propagar hostnme
 
 // --- Credenciais da rede Wi-Fi ---
-const char* ssid = "ssid-da-rede-wifi";
-const char* password = "senha-da-rede-wifi";
+const char* ssid = "Hometux";
+const char* password = "minhacas4";
 
 const int trigPin = 5; // GPIO 5 no ESP32
 const int echoPin = 18; // GPIO 18 no ESP32
@@ -200,7 +200,28 @@ void handleRoot() {
   server.send(200, "text/html", html);
 }
 
+void reconnectWiFi() { 
+  WiFi.disconnect(); 
+  delay(1000); 
+  WiFi.begin(ssid, password); 
+  Serial.println("Reconectando WiFi..."); 
+  int tentativas = 0;
+
+  while (WiFi.status() != WL_CONNECTED && tentativas < 20) { 
+    delay(500); 
+    Serial.print("."); 
+    tentativas++; 
+    } 
+    if (WiFi.status() == WL_CONNECTED) { 
+      Serial.println("Reconectado!"); 
+    } else { 
+      Serial.println("Falha WiFi - reiniciando ESP"); 
+      ESP.restart();
+      }
+    }
+
 void setup() {
+  WiFi.setSleep(false); // evita entrar em modo economia e perder conexão
   Serial.println("Iniciando ESP32 e conectando ao wi-fi...");
   Serial.begin(115200);
   pinMode(trigPin, OUTPUT);
@@ -245,7 +266,7 @@ void setup() {
   } else {
     Serial.println();
     Serial.println("❌ Falha ao conectar ao Wi-Fi!");
-    Serial.println("Verifique o SSID e a senha, ou reinicie o roteador.");
+    //Serial.println("Verifique o SSID e a senha, ou reinicie o roteador.");
     digitalWrite(LED_BUILTIN, LOW);  // mantém LED apagado
   }
 
@@ -258,6 +279,7 @@ void setup() {
 }
 
 void loop() {
+  unsigned long lastReconnectAttempt = 0;
   if (WiFi.status() == WL_CONNECTED) {
 
   // Acende o LED
@@ -272,8 +294,12 @@ void loop() {
   server.handleClient(); 
 
   } else {
-      Serial.println("Wi-Fi desconectado! Tentando reconectar...");
-      WiFi.reconnect(); // tenta reconectar automaticamente
+      Serial.println("Wi-Fi desconectado!");
+      //WiFi.reconnect(); // tenta reconectar automaticamente
+      if (millis() - lastReconnectAttempt > 10000) { // tenta a cada 10s
+      reconnectWiFi();
+      lastReconnectAttempt = millis();
+      }
     }
 
   // --- INICIO --- 
