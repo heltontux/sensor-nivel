@@ -5,8 +5,8 @@
 #include <ESPmDNS.h> //Serviço DNS para propagar hostnme
 
 // --- Credenciais da rede Wi-Fi ---
-const char* ssid = "Hometux";
-const char* password = "minhacas4";
+const char* ssid = "ssid-da-rede-wifi";
+const char* password = "senha-da-rede-wifi";
 
 const int trigPin = 5; // GPIO 5 no ESP32
 const int echoPin = 18; // GPIO 18 no ESP32
