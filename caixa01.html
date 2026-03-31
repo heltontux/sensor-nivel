@@ -1,0 +1,161 @@
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dashboard Caixa d'Água</title>
+
+<style>
+  
+body{
+  margin:0;
+  font-family:Arial;
+  background:#0f172a;
+  color:white;
+  text-align:center;
+}
+
+.header{
+  font-size:26px;
+  padding:20px;
+  font-weight:bold;
+}
+
+.container{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+}
+
+.tank{
+  width:160px;
+  height:280px;
+  border:4px solid #94a3b8;
+  border-radius:12px;
+  margin-top:20px;
+  position:relative;
+  overflow:hidden;
+  background:#1e293b;
+}
+
+.water{
+  position:absolute;
+  bottom:0;
+  width:100%;
+  transition:height 1s;
+}
+
+.percent{
+  font-size:42px;
+  font-weight:bold;
+  margin-top:10px;
+}
+
+.cards{
+  display:flex;
+  gap:15px;
+  margin-top:30px;
+  flex-wrap:wrap;
+  justify-content:center;
+}
+
+.card{
+  background:#1e293b;
+  padding:15px;
+  border-radius:10px;
+  width:140px;
+}
+
+.label{
+  font-size:13px;
+  color:#94a3b8;
+}
+
+.value{
+  font-size:22px;
+  margin-top:5px;
+}
+</style>
+
+</head>
+
+<body>
+
+<div class="header">Caixa d'Água</div>
+
+<div class="container">
+
+  <div class="tank">
+    <div id="water" class="water"></div>
+  </div>
+
+  <div id="percent" class="percent">--%</div>
+
+  <div class="cards">
+
+    <div class="card">
+      <div class="label">Distância</div>
+      <div id="distancia" class="value">-- cm</div>
+    </div>
+
+    <div class="card">
+      <div class="label">Volume</div>
+      <div id="litros" class="value">-- L</div>
+    </div>
+
+    <div class="card">
+      <div class="label">Capacidade</div>
+      <div id="capacidade" class="value">1000 L</div>
+    </div>
+
+  </div>
+
+</div>
+
+<script>
+
+function atualizar(){
+
+ fetch("https://sensor-nivel.infinityfree.me/get.php")
+ .then(res => res.json())
+ .then(data => {
+
+   let distanciaMax = 80;
+   let distanciaMin = 25;
+   let capacidadeTotal = 1000;
+
+   let lastDistance = data.distance;
+
+   // cálculo
+   let nivel_percentual = (distanciaMax - lastDistance) / (distanciaMax - distanciaMin) * 100;
+
+   if (nivel_percentual < 0) nivel_percentual = 0;
+   if (nivel_percentual > 100) nivel_percentual = 100;
+
+   let nivel_litros = (nivel_percentual / 100) * capacidadeTotal;
+
+   // cor dinâmica
+   let cor = "#22c55e";
+   if (nivel_percentual < 30) cor = "#ef4444";
+   else if (nivel_percentual < 60) cor = "#facc15";
+
+   // atualizar UI
+   document.getElementById("water").style.height = nivel_percentual + "%";
+   document.getElementById("water").style.background = cor;
+
+   document.getElementById("percent").innerText = nivel_percentual.toFixed(0) + "%";
+   document.getElementById("distancia").innerText = lastDistance.toFixed(1) + " cm";
+   document.getElementById("litros").innerText = nivel_litros.toFixed(0) + " L";
+   document.getElementById("capacidade").innerText = capacidadeTotal + " L";
+
+ })
+ .catch(err => console.log("Erro:", err));
+}
+
+// atualiza a cada 3 segundos
+//setInterval(atualizar, 3000);
+atualizar();
+
+</script>
+
+</body>
+</html>
