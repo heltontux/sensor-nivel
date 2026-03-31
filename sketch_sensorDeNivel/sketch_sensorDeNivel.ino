@@ -13,6 +13,7 @@ const int echoPin = 18; // GPIO 18 no ESP32
 
 // --- Armazena a última distância medida ---
 float lastDistance = 0;
+float distanciaAnterior = 0;
 
 // --- Cria o servidor web na porta 80 ---
 WebServer server(80);
@@ -311,8 +312,11 @@ void loop() {
   digitalWrite(trigPin, LOW);
 
   long duration = pulseIn(echoPin, HIGH, 30000); // timeout 30ms
+  
+  temp = lastDistance; // escopo local para atualizar a distanciaAnterior
   if (duration != 0) {
     lastDistance = duration * 0.0343 / 2;
+    distanciaAnterior = temp;
     
     Serial.print("Distance: ");
     Serial.print(lastDistance);

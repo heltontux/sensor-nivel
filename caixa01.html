@@ -93,6 +93,11 @@ body{
   <div class="cards">
 
     <div class="card">
+      <div class="label">Status</div>
+      <div id="status" class="value">--</div>
+    </div>
+
+    <div class="card">
       <div class="label">Distância</div>
       <div id="distancia" class="value">-- cm</div>
     </div>
@@ -124,14 +129,27 @@ function atualizar(){
    let capacidadeTotal = 1000;
 
    let lastDistance = data.distance;
+   let distanciaAnterior = data.distanciaAnterior;
 
-   // cálculo
+   // cálculo percentual
    let nivel_percentual = (distanciaMax - lastDistance) / (distanciaMax - distanciaMin) * 100;
-
    if (nivel_percentual < 0) nivel_percentual = 0;
    if (nivel_percentual > 100) nivel_percentual = 100;
-
    let nivel_litros = (nivel_percentual / 100) * capacidadeTotal;
+
+   // Calculo estado
+   let tolerancia = 1.5; // cm
+   let estado = "parado";
+   if (lastDistance < distanciaAnterior - tolerancia) {
+     estado = "enchendo";
+   } else if (lastDistance > distanciaAnterior + tolerancia) {
+     estado = "esvaziando";
+   } else {
+     estado = "estavel";
+   }
+   let corStatus = "gray";
+    if (estado === "enchendo") corStatus = "green";
+    if (estado === "esvaziando") corStatus = "red";
 
    // cor dinâmica
    let cor = "#22c55e";
@@ -141,6 +159,8 @@ function atualizar(){
    // atualizar UI
    document.getElementById("water").style.height = nivel_percentual + "%";
    document.getElementById("water").style.background = cor;
+   document.getElementById("status").innerText = estado;
+   document.getElementById("status").style.color = corStatus;
 
    document.getElementById("percent").innerText = nivel_percentual.toFixed(0) + "%";
    document.getElementById("distancia").innerText = lastDistance.toFixed(1) + " cm";

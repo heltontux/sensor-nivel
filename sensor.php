@@ -9,9 +9,24 @@ $data = json_decode(file_get_contents("php://input"), true);
 if (!$data) {
     $data = [
         "device" => "teste",
-        "distance" => rand(25, 80)
+        "distance" => rand(25, 80),
     ];
 }
+
+// lê dados anteriores (se existir)
+$dadosAnteriores = null;
+if (file_exists("dados.json")) {
+    $dadosAnteriores = json_decode(file_get_contents("dados.json"), true);
+}
+
+// pega distancia anterior
+$distanciaAnterior = null;
+if ($dadosAnteriores && isset($dadosAnteriores["distance"])) {
+    $distanciaAnterior = $dadosAnteriores["distance"];
+}
+
+// adiciona ao JSON atual
+$data["distanciaAnterior"] = $distanciaAnterior;
 
 // salva em arquivo (simples)
 file_put_contents("dados.json", json_encode($data));
