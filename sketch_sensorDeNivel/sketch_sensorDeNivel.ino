@@ -1,6 +1,8 @@
 // --- Bibliotecas
 #include <WiFi.h>
 #include <HardwareSerial.h>
+#include <HTTPClient.h>
+#include <WiFiClientSecure.h>
 
 // --- Credenciais da rede Wi-Fi ---
 const char* ssid = "ssid-da-rede-wifi";
@@ -12,13 +14,17 @@ const int echoPin = 18; // GPIO 18 no ESP32
 // --- Armazena a última distância medida ---
 float lastDistance = 0;
 
+// controle de envio
+unsigned long lastSend = 0;
+const int intervalo = 10000; // 10 segundos
+
 void reconnectWiFi() { 
   WiFi.disconnect(); 
   delay(1000); 
   WiFi.begin(ssid, password); 
   Serial.println("Reconectando WiFi..."); 
+  
   int tentativas = 0;
-
   while (WiFi.status() != WL_CONNECTED && tentativas < 20) { 
     delay(500); 
     Serial.print("."); 
@@ -31,6 +37,41 @@ void reconnectWiFi() {
       ESP.restart();
       }
     }
+
+// --- Função para enviar dados ---
+void enviarDados(float distancia) {
+
+  if (WiFi.status() == WL_CONNECTED) {
+
+    WiFiClientSecure client;
+    client.setInsecure(); // ignora certificado
+
+    HTTPClient http;
+    http.begin(client, "https://sua-api-endpoint.com/sensor");
+
+    http.addHeader("Content-Type", "application/x-www-form-urlencoded");
+    http.addHeader("Connection", "close");
+
+    String postData = "device=caixa01&distance=" + String(distancia, 1);
+
+    int httpResponseCode = http.POST(postData);
+
+    Serial.print("Enviado: ");
+    Serial.println(postData);
+
+    Serial.print("HTTP Response: ");
+    Serial.println(httpResponseCode);
+
+    String resposta = http.getString();
+    Serial.println("Resposta:");
+    Serial.println(resposta);
+
+    http.end();
+
+  } else {
+    Serial.println("WiFi desconectado");
+  }
+}
 
 void setup() {
   WiFi.setSleep(false); // evita entrar em modo economia e perder conexão
@@ -89,7 +130,6 @@ void loop() {
 
   } else {
       Serial.println("Wi-Fi desconectado!");
-      //WiFi.reconnect(); // tenta reconectar automaticamente
       if (millis() - lastReconnectAttempt > 10000) { // tenta a cada 10s
       reconnectWiFi();
       lastReconnectAttempt = millis();
@@ -112,6 +152,12 @@ void loop() {
     Serial.print("Distance: ");
     Serial.print(lastDistance);
     Serial.println(" cm");
+
+      // --- Envio periódico ---
+  if (millis() - lastSend > intervalo) {
+    enviarDados(lastDistance);
+    lastSend = millis();
+  }
   
   delay(10000); // mede a cada 10s
 }
