@@ -125,7 +125,7 @@ function atualizar(){
  .then(data => {
 
    let distanciaMax = 80;
-   let distanciaMin = 25;
+   let distanciaMin = 26.5;
    let capacidadeTotal = 1000;
 
    let lastDistance = data.distance;
@@ -138,7 +138,7 @@ function atualizar(){
    let nivel_litros = (nivel_percentual / 100) * capacidadeTotal;
 
    // Calculo estado
-   let tolerancia = 1.5; // cm
+   let tolerancia = 0.3; // cm
    let estado = "parado";
    if (lastDistance < distanciaAnterior - tolerancia) {
      estado = "enchendo";
