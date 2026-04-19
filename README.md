@@ -15,5 +15,5 @@ Caso não tenha a placa ainda, poderá ser utilizado o site [wokwi](https://wokw
 Desenhar o esquema de montagem
 ~~~
 ## Layout da página inicial
-<img width="750" height="812" alt="image" src="https://github.com/user-attachments/assets/89da8be2-f866-4620-9e4d-061aababb419" />
+<img width="672" height="877" alt="image" src="https://github.com/user-attachments/assets/db23a259-96a3-4932-9cbb-3fa0e1ba0791" />
 
