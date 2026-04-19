@@ -1,180 +1,193 @@
-<html>
+<!DOCTYPE html>
+<html lang="pt-br">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Dashboard Caixa d'Água</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard Caixa d'Água</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #0f172a;
+      color: white;
+    }
 
-<style>
-  
-body{
-  margin:0;
-  font-family:Arial;
-  background:#0f172a;
-  color:white;
-  text-align:center;
-}
+    .container {
+      padding: 20px;
+    }
 
-.header{
-  font-size:26px;
-  padding:20px;
-  font-weight:bold;
-}
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 2fr;
+      gap: 20px;
+    }
 
-.container{
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-}
+    .card {
+      background: #1e293b;
+      border-radius: 12px;
+      padding: 20px;
+    }
 
-.tank{
-  width:160px;
-  height:280px;
-  border:4px solid #94a3b8;
-  border-radius:12px;
-  margin-top:20px;
-  position:relative;
-  overflow:hidden;
-  background:#1e293b;
-}
+    .tank {
+      width: 120px;
+      height: 250px;
+      border: 4px solid #94a3b8;
+      border-radius: 10px;
+      margin: auto;
+      position: relative;
+      overflow: hidden;
+    }
 
-.water{
-  position:absolute;
-  bottom:0;
-  width:100%;
-  transition:height 1s;
-}
+    .water {
+      position: absolute;
+      bottom: 0;
+      width: 100%;
+      height: 0%;
+      transition: height 0.5s ease;
+    }
 
-.percent{
-  font-size:42px;
-  font-weight:bold;
-  margin-top:10px;
-}
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
 
-.cards{
-  display:flex;
-  gap:15px;
-  margin-top:30px;
-  flex-wrap:wrap;
-  justify-content:center;
-}
+    .metric {
+      background: #334155;
+      padding: 10px;
+      border-radius: 8px;
+      text-align: center;
+    }
 
-.card{
-  background:#1e293b;
-  padding:15px;
-  border-radius:10px;
-  width:140px;
-}
-
-.label{
-  font-size:13px;
-  color:#94a3b8;
-}
-
-.value{
-  font-size:22px;
-  margin-top:5px;
-}
-</style>
-
+    canvas {
+      background: #1e293b;
+      border-radius: 12px;
+      padding: 10px;
+    }
+  </style>
 </head>
-
 <body>
 
-<div class="header">Caixa d'Água</div>
-
 <div class="container">
+  <h2>💧 Dashboard Caixa d'Água</h2>
 
-  <div class="tank">
-    <div id="water" class="water"></div>
-  </div>
+  <div class="grid">
 
-  <div id="percent" class="percent">--%</div>
-
-  <div class="cards">
-
+    <!-- Caixa -->
     <div class="card">
-      <div class="label">Status</div>
-      <div id="status" class="value">--</div>
+      <div class="tank">
+        <div id="water" class="water"></div>
+      </div>
+      <h2 id="percent">0%</h2>
+      <p id="volume">0 L</p>
     </div>
 
-    <div class="card">
-      <div class="label">Distância</div>
-      <div id="distancia" class="value">-- cm</div>
-    </div>
-
-    <div class="card">
-      <div class="label">Volume</div>
-      <div id="litros" class="value">-- L</div>
-    </div>
-
-    <div class="card">
-      <div class="label">Capacidade</div>
-      <div id="capacidade" class="value">1000 L</div>
+    <!-- Métricas -->
+    <div class="card metrics">
+      <div class="metric"><div>Status</div><strong id="status">-</strong></div>
+      <div class="metric"><div>Volume</div><strong id="vol">-</strong></div>
+      <div class="metric"><div>Capacidade</div><strong>1000 L</strong></div>
+      <div class="metric"><div>Atualização</div><strong>Tempo real</strong></div>
     </div>
 
   </div>
 
+  <br>
+
+  <!-- Gráfico -->
+  <canvas id="chart" height="100"></canvas>
 </div>
 
 <script>
+  let distancia = null;
+  let distanciaAnterior = null;
+  let tolerancia = 0.3; // cm
 
-function atualizar(){
+  const water = document.getElementById('water');
+  const percentEl = document.getElementById('percent');
+  const volumeEl = document.getElementById('volume');
+  const statusEl = document.getElementById('status');
+  const volEl = document.getElementById('vol');
 
- fetch("https://api-sensor-33x4.onrender.com/dados")
- .then(res => res.json())
- .then(data => {
+  const ctx = document.getElementById('chart').getContext('2d');
 
-   let distanciaMax = 80;
-   let distanciaMin = 26.5;
-   let capacidadeTotal = 1000;
+  const chart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: [],
+      datasets: [{
+        label: 'Volume (L)',
+        data: [],
+        borderWidth: 2
+      }]
+    },
+    options: {
+      scales: {
+        y: { beginAtZero: true }
+      }
+    }
+  });
 
-   let lastDistance = data.distance;
-   let distanciaAnterior = data.distanciaAnterior;
+  function getColor(nivel) {
+    if (nivel > 60) return '#22c55e';
+    if (nivel > 30) return '#facc15';
+    return '#ef4444';
+  }
 
-   // cálculo percentual
-   let nivel_percentual = (distanciaMax - lastDistance) / (distanciaMax - distanciaMin) * 100;
-   if (nivel_percentual < 0) nivel_percentual = 0;
-   if (nivel_percentual > 100) nivel_percentual = 100;
-   let nivel_litros = (nivel_percentual / 100) * capacidadeTotal;
+  function status() {
+    let status = "parado";
+      if (distancia < distanciaAnterior - tolerancia) {
+        status = "enchendo";
+      } else if (distancia > distanciaAnterior + tolerancia) {
+        status = "esvaziando";
+      } else {
+        status = "estavel";
+      }
+   return status;
+  }
 
-   // Calculo estado
-   let tolerancia = 0.3; // cm
-   let estado = "parado";
-   if (lastDistance < distanciaAnterior - tolerancia) {
-     estado = "enchendo";
-   } else if (lastDistance > distanciaAnterior + tolerancia) {
-     estado = "esvaziando";
-   } else {
-     estado = "estavel";
-   }
-   let corStatus = "gray";
-    if (estado === "enchendo") corStatus = "green";
-    if (estado === "esvaziando") corStatus = "red";
+  async function atualizar() {
+    try {
+      const res = await fetch('https://api-sensor-33x4.onrender.com/dados');
+      const data = await res.json();
+      distancia = data.distance;
+      distanciaAnterior = data.distanciaAnterior;
+      const alturaMax = 80; // cm
+      const alturaMin = 26.5; // cm
+      const nivel = ((alturaMax - distancia) / (alturaMax - alturaMin)) * 100;
+      const nivelClamp = Math.max(0, Math.min(100, nivel));
+      const volume = Math.round((nivelClamp / 100) * 1000);
 
-   // cor dinâmica
-   let cor = "#22c55e";
-   if (nivel_percentual < 30) cor = "#ef4444";
-   else if (nivel_percentual < 60) cor = "#facc15";
+      // UI
+      water.style.height = nivelClamp + '%';
+      water.style.background = getColor(nivelClamp);
 
-   // atualizar UI
-   document.getElementById("water").style.height = nivel_percentual + "%";
-   document.getElementById("water").style.background = cor;
-   document.getElementById("status").innerText = estado;
-   document.getElementById("status").style.color = corStatus;
+      percentEl.innerText = nivelClamp.toFixed(0) + '%';
+      volumeEl.innerText = volume + ' L';
 
-   document.getElementById("percent").innerText = nivel_percentual.toFixed(0) + "%";
-   document.getElementById("distancia").innerText = lastDistance.toFixed(1) + " cm";
-   document.getElementById("litros").innerText = nivel_litros.toFixed(0) + " L";
-   document.getElementById("capacidade").innerText = capacidadeTotal + " L";
+        statusEl.innerText = status();
+        statusEl.style.color = status() === "enchendo" ? 'green' : (status() === "esvaziando" ? 'red' : 'gray'); 
+        volEl.innerText = volume + ' L';
 
- })
- .catch(err => console.log("Erro:", err));
-}
+      // gráfico
+      const time = new Date().toLocaleTimeString();
 
-// atualiza a cada 3 segundos
-//setInterval(atualizar, 3000);
-atualizar();
+      chart.data.labels.push(time);
+      chart.data.datasets[0].data.push(volume);
 
+      if (chart.data.labels.length > 20) {
+        chart.data.labels.shift();
+        chart.data.datasets[0].data.shift();
+      }
+
+      chart.update();
+
+    } catch (e) {
+      console.error(e);
+    }
+  }
+  setInterval(atualizar, 3000);
 </script>
 
 </body>
